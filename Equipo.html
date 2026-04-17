@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <link rel="icon" type="image/png" href="../Media/faviconRDP.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equipos Nuevos Checklist</title>
+    <link rel="stylesheet" href="../css/estilo.css">
+</head>
+<body>
+
+    <div class="main-layout">
+        <header class="dashboard-header">
+            <div class="brand">
+                <span class="glitch-text">NUEVOS EQUIPOS</span>
+                <div class="stats-bar">
+                    PENDIENTES: <span id="count-pending">0</span> | LISTOS: <span id="count-done">0</span>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <div class="add-team-box">
+                    <input type="text" id="team-input" placeholder="Nombre del equipo...">
+                    <button id="add-btn" class="btn-add-inline">AÑADIR</button>
+                </div>
+                <button id="clean-btn" class="btn-clean" onclick="limpiarCompletados()">LIMPIAR TERMINADOS</button>
+            </div>
+        </header>
+
+        <div class="table-frame">
+            <table id="equipos-table">
+                <thead>
+                    <tr>
+                        <th>ID EQUIPO</th>
+                        <th>PROGRESO</th>
+                        <th>Actualizaciones</th>
+                        <th>Bios Update</th>
+                        <th>Cosas C:\</th>
+                        <th>Cuentas</th>
+                        <th>Aplicaciones</th>
+                        <th>Estado</th>
+                        <th>ELIMINAR</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body"></tbody>
+            </table>
+        </div>
+
+        <div class="global-notes-container">
+            <div class="notes-header-flex">
+                <div class="notes-header">NOTAS GENERALES</div>
+                <button class="btn-date" id="date-btn" onclick="insertarFecha()">INSERTAR FECHA</button>
+            </div>
+            <textarea id="global-notes" placeholder="Escribe aquí..." oninput="guardarNotasGlobales()"></textarea>
+            
+            <div class="notes-header" style="margin-top: 30px; margin-bottom: 10px;">NOTAS POR EQUIPO</div>
+            <div id="team-summary-list" class="summary-grid"></div>
+        </div>
+    </div>
+
+    <script>
+        const btnAdd = document.getElementById('add-btn');
+        const inputTeam = document.getElementById('team-input');
+        const tableBody = document.getElementById('table-body');
+        const globalNotes = document.getElementById('global-notes');
+        const summaryList = document.getElementById('team-summary-list');
+
+        function guardarDatos() { 
+            localStorage.setItem('techTrackData', tableBody.innerHTML);
+            actualizarContadores();
+        }
+
+        function guardarNotasGlobales() { 
+            localStorage.setItem('techTrackNotes', globalNotes.value); 
+        }
+
+        function cargarDatos() {
+            const datosCargados = localStorage.getItem('techTrackData');
+            if (datosCargados) {
+                tableBody.innerHTML = datosCargados;
+                document.querySelectorAll('#table-body tr').forEach(row => { 
+                    actualizarProgresoVisual(row); 
+                });
+            }
+            const notasGuardadas = localStorage.getItem('techTrackNotes');
+            if (notasGuardadas) { globalNotes.value = notasGuardadas; }
+            actualizarResumenEquipos();
+            actualizarContadores();
+        }
+
+        function crearEquipo() {
+    let nombre = inputTeam.value.trim();
+
+    // ❌ vacío
+    if (nombre === "") return;
+
+    // 🔧 normalización (clave)
+    const nombreNormalizado = nombre.toUpperCase();
+
+    // 🔍 comprobar duplicados (robusto)
+    const existe = [...document.querySelectorAll('.edit-name')]
+        .some(input => input.value.trim().toUpperCase() === nombreNormalizado);
+
+    if (existe) {
+        alert("Ese equipo ya existe.");
+        inputTeam.focus();
+        return;
+    }
+
+    const idUnico = "row-" + Date.now();
+    const newRow = document.createElement('tr');
+    newRow.setAttribute('data-id', idUnico);
+
+    newRow.innerHTML = `
+        <td class="team-id">
+            <input type="text" class="edit-name" value="${nombreNormalizado}" readonly>
+        </td>
+
+        <td>
+			<div class="progress-container">
+			<div class="progress-bar" style="width: 0%"></div>
+			</div>
+			<div class="progress-text">0%</div>
+		</td>
+
+        <td><label class="cb-red" tabindex="0" onkeydown="handleCheckKey(event, this)">
+            <input type="checkbox" onchange="actualizarCheck(this)"><span></span>
+        </label></td>
+
+        <td><label class="cb-red" tabindex="0" onkeydown="handleCheckKey(event, this)">
+            <input type="checkbox" onchange="actualizarCheck(this)"><span></span>
+        </label></td>
+
+        <td><label class="cb-red" tabindex="0" onkeydown="handleCheckKey(event, this)">
+            <input type="checkbox" onchange="actualizarCheck(this)"><span></span>
+        </label></td>
+
+        <td><label class="cb-red" tabindex="0" onkeydown="handleCheckKey(event, this)">
+            <input type="checkbox" onchange="actualizarCheck(this)"><span></span>
+        </label></td>
+
+        <td><label class="cb-red" tabindex="0" onkeydown="handleCheckKey(event, this)">
+            <input type="checkbox" onchange="actualizarCheck(this)"><span></span>
+        </label></td>
+
+        <td><button class="finish-btn" onclick="finalizarFila(this)">ACABADO</button></td>
+        <td><button class="delete-row-btn" onclick="eliminarFila(this)">ELIMINAR</button></td>
+
+        <td style="display:none"><input type="hidden" class="hidden-notes" value=""></td>
+        <td style="display:none"><input type="checkbox" class="hidden-inv-check"></td>
+    `;
+
+    tableBody.appendChild(newRow);
+
+    inputTeam.value = "";
+    inputTeam.focus();
+
+    guardarDatos();
+    actualizarResumenEquipos();
+}
+
+        function handleCheckKey(e, label) {
+            if (e.key === " ") { e.preventDefault(); label.querySelector('input').click(); }
+            if (e.key === "Enter") {
+                e.preventDefault();
+                const next = label.closest('td').nextElementSibling?.querySelector('label, button');
+                if (next) next.focus();
+            }
+        }
+
+        function actualizarCheck(input) {
+            const row = input.closest('tr');
+            if (row.classList.contains('row-finished')) { 
+                input.checked = !input.checked; 
+                return; 
+            }
+            input.checked ? input.setAttribute('checked', 'checked') : input.removeAttribute('checked');
+            actualizarProgresoVisual(row); 
+            guardarDatos();
+        }
+
+        function actualizarProgresoVisual(row) {
+            const checks = row.querySelectorAll('td:nth-child(n+3):nth-child(-n+7) input[type="checkbox"]');
+            const bar = row.querySelector('.progress-bar');
+            const btnFinish = row.querySelector('.finish-btn');
+            let marcados = 0;
+            checks.forEach(c => { if(c.checked) marcados++; });
+            const porcentaje = (marcados / checks.length) * 100;
+            bar.style.width = porcentaje + "%";
+            bar.style.background = porcentaje === 100 ? "#2ecc71" : "var(--red-main)";
+            porcentaje === 100 ? btnFinish.classList.add('ready-to-finish') : btnFinish.classList.remove('ready-to-finish');
+        }
+
+        function finalizarFila(btn) {
+            const row = btn.closest('tr');
+            if (!btn.classList.contains('ready-to-finish') && !row.classList.contains('row-finished')) return; 
+            row.classList.toggle('row-finished');
+            btn.textContent = row.classList.contains('row-finished') ? "REABRIR" : "ACABADO";
+            guardarDatos(); 
+            actualizarResumenEquipos();
+        }
+
+        function eliminarFila(btn) {
+            if(confirm("¿Eliminar equipo?")) {
+                btn.closest('tr').remove();
+                guardarDatos(); 
+                actualizarResumenEquipos();
+            }
+        }
+
+ function limpiarCompletados() {
+    const terminados = document.querySelectorAll('.row-finished');
+    const cantidad = terminados.length;
+
+    // Si no hay equipos terminados
+    if (cantidad === 0) {
+        alert("No hay equipos terminados para eliminar.");
+        return;
+    }
+
+    // Confirmación con número real
+    if (confirm(`Se eliminarán ${cantidad} equipo(s) terminados. ¿Continuar?`)) {
+        terminados.forEach(row => row.remove());
+        guardarDatos();
+        actualizarResumenEquipos();
+    }
+}
+
+        function insertarFecha() {
+            const ahora = new Date();
+            const fechaStr = ahora.toLocaleDateString() + " " + ahora.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            globalNotes.value += `\n[${fechaStr}]: `;
+            globalNotes.focus();
+            guardarNotasGlobales();
+        }
+
+       function actualizarResumenEquipos() {
+    summaryList.innerHTML = "";
+
+    document.querySelectorAll('#table-body tr').forEach(row => {
+
+        const nombre = row.querySelector('.edit-name').value;
+        const id = row.getAttribute('data-id');
+        const notasOcultas = row.querySelector('.hidden-notes').value;
+        const invChecked = row.querySelector('.hidden-inv-check').checked;
+
+        // ✅ SOLO UNA VEZ
+        const estaTerminado = row.classList.contains('row-finished');
+
+        const card = document.createElement('div');
+        card.className = "team-card";
+
+        card.innerHTML = `
+            <div class="card-header">${nombre}</div>
+
+            ${!estaTerminado ? `
+                <textarea class="card-textarea" placeholder="Notas de configuración..." 
+                oninput="actualizarNotaEquipo('${id}', this.value)">${notasOcultas}</textarea>
+            ` : `
+                <div style="padding:10px;color:#555;font-size:0.7rem;">
+                    EQUIPO TERMINADO
+                </div>
+            `}
+
+            <div class="card-footer">
+                <span class="footer-q">¿INVENTARIADO?</span>
+                <div class="binary-switch">
+                    <button class="${!invChecked ? 'active' : ''}" onclick="toggleInventario('${id}', false)">NO</button>
+                    <button class="${invChecked ? 'active' : ''}" onclick="toggleInventario('${id}', true)">SI</button>
+                </div>
+            </div>
+        `;
+
+        summaryList.appendChild(card);
+    });
+}
+
+        function toggleInventario(id, estado) {
+            const row = document.querySelector(`tr[data-id="${id}"]`);
+            if (row) {
+                const check = row.querySelector('.hidden-inv-check');
+                check.checked = estado;
+                estado ? check.setAttribute('checked', 'checked') : check.removeAttribute('checked');
+                guardarDatos();
+                actualizarResumenEquipos();
+            }
+        }
+
+        function actualizarNotaEquipo(id, texto) {
+            const row = document.querySelector(`tr[data-id="${id}"]`);
+            if (row) {
+                const hiddenInput = row.querySelector('.hidden-notes');
+                hiddenInput.value = texto;
+                hiddenInput.setAttribute('value', texto);
+                guardarDatos();
+            }
+        }
+
+        function actualizarContadores() {
+            const total = document.querySelectorAll('#table-body tr').length;
+            const listos = document.querySelectorAll('.row-finished').length;
+            document.getElementById('count-pending').textContent = total - listos;
+            document.getElementById('count-done').textContent = listos;
+        }
+
+        btnAdd.addEventListener('click', crearEquipo);
+        inputTeam.addEventListener('keypress', (e) => { if(e.key === 'Enter') crearEquipo(); });
+        window.onload = cargarDatos;
+		
+    </script>
+</body>
+</html>
