@@ -1,0 +1,78 @@
+:root {
+    --bg: #050505;
+    --card-bg: #0f0f0f;
+    --red-main: #ff3e3e;
+    --red-dim: #4a0000;
+    --text: #e0e0e0;
+    --border-color: #222;
+}
+
+body { margin: 0; font-family: 'Segoe UI', sans-serif; background-color: var(--bg); color: var(--text); }
+.main-layout { padding: 40px; max-width: 1400px; margin: 0 auto; }
+
+/* HEADER */
+.dashboard-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; flex-wrap: wrap; gap: 20px; }
+.glitch-text { font-size: 1.8rem; font-weight: 900; color: var(--red-main); letter-spacing: 2px; }
+
+/* Tipografía profesional para contadores */
+.stats-bar { 
+    font-family: 'Consolas', 'Monaco', 'JetBrains Mono', monospace; 
+    font-weight: bold; 
+    letter-spacing: 1px;
+}
+#count-pending { color: var(--red-main); font-size: 20px; }
+#count-done { color: #2ecc71; font-size: 18px; }
+
+.header-actions { display: flex; gap: 15px; align-items: center; }
+#team-input { background: #1a1a1a; border: 1px solid var(--border-color); padding: 12px; color: white; border-radius: 4px; outline: none; }
+.btn-add-inline { background: var(--red-main); color: white; border: none; padding: 12px 20px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+.btn-clean { background: transparent; color: #666; border: 1px solid #333; padding: 10px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; }
+
+/* TABLA */
+.table-frame { background: var(--card-bg); border: 1px solid var(--border-color); overflow-x: auto; margin-bottom: 40px; }
+table { width: 100%; border-collapse: collapse; }
+th { padding: 15px; text-align: left; color: var(--red-main); border-bottom: 2px solid var(--red-dim); font-size: 0.75rem; }
+td { padding: 12px 15px; border-bottom: 1px solid var(--border-color); }
+
+/* Nombre del equipo bloqueado */
+.edit-name { background: transparent; border: none; color: white; font-weight: bold; outline: none; width: 150px; cursor: default; }
+
+.progress-container { width: 80px; height: 8px; background: #1a1a1a; border-radius: 10px; border: 1px solid #222; overflow: hidden; }
+.progress-bar { height: 100%; width: 0%; transition: width 0.4s ease; border-radius: 10px; }
+
+.cb-red { display: inline-block; width: 22px; height: 22px; background: #1a1a1a; border: 1px solid #333; border-radius: 4px; cursor: pointer; position: relative; outline: none; }
+.cb-red input { display: none; }
+.cb-red input:checked + span::after { content: "✓"; position: absolute; color: var(--red-main); left: 5px; top: 0; font-weight: bold; }
+.cb-red:focus { border-color: var(--red-main); box-shadow: 0 0 5px var(--red-main); }
+
+.finish-btn { background: #111; border: 1px solid #333; color: #444; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; }
+.finish-btn.ready-to-finish { border-color: #eee; color: #eee; }
+.delete-row-btn { background: transparent; border: 1px solid var(--red-main); color: var(--red-main); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; }
+
+.row-finished td { opacity: 0.2; }
+.row-finished .edit-name { text-decoration: line-through; color: #2ecc71; }
+
+/* TARJETAS NOTAS */
+.summary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-top: 10px; }
+.team-card { background: #0a0a0a; border: 1px solid #222; border-radius: 4px; display: flex; flex-direction: column; }
+.card-header { background: #111; padding: 10px; color: #fff; font-weight: bold; font-size: 0.8rem; border-left: 3px solid var(--red-main); }
+.card-textarea { background: transparent; border: none; color: #aaa; padding: 10px; height: 80px; resize: none; font-size: 0.8rem; outline: none; font-family: inherit; }
+.card-footer { padding: 10px; background: #0d0d0d; border-top: 1px solid #1a1a1a; display: flex; justify-content: space-between; align-items: center; }
+.footer-q { font-size: 0.6rem; color: #666; font-weight: bold; }
+
+/* BINARY SWITCH SI/NO */
+.binary-switch { display: flex; background: #1a1a1a; border-radius: 4px; padding: 2px; border: 1px solid #333; }
+.binary-switch button { background: transparent; border: none; color: #444; padding: 4px 12px; font-size: 0.65rem; font-weight: 900; cursor: pointer; border-radius: 2px; }
+.binary-switch button.active { color: #fff; }
+.binary-switch button:nth-child(2).active { background: var(--red-main); box-shadow: 0 0 10px rgba(255, 62, 62, 0.4); }
+.binary-switch button:nth-child(1).active { background: #333; color: #888; }
+
+/* NOTAS GENERALES */
+#global-notes { width: 100%; height: 100px; background: #000; color: #ccc; border: 1px solid #222; border-left: 4px solid var(--red-main); padding: 10px; margin-top: 10px; box-sizing: border-box; resize: vertical; outline: none; }
+.notes-header { color: var(--red-main); font-size: 0.8rem; font-weight: bold; }
+.btn-date { background: transparent; border: 1px solid #333; color: #555; padding: 5px 10px; cursor: pointer; font-size: 0.6rem; border-radius: 3px; }
+
+.team-card.hidden {
+    display: none;
+    /* O puedes usar: opacity: 0; pointer-events: none; si prefieres animarlo */
+}
