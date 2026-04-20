@@ -8,71 +8,486 @@
 }
 
 body { margin: 0; font-family: 'Segoe UI', sans-serif; background-color: var(--bg); color: var(--text); }
-.main-layout { padding: 40px; max-width: 1400px; margin: 0 auto; }
+.main-layout { padding: 40px; max-width: 1300px; margin: 0 auto; }
 
-/* HEADER */
 .dashboard-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; flex-wrap: wrap; gap: 20px; }
-.glitch-text { font-size: 1.8rem; font-weight: 900; color: var(--red-main); letter-spacing: 2px; }
+.glitch-text { font-size: 1.8rem; font-weight: 900; color: var(--red-main); letter-spacing: 2px; line-height: 1; }
 
-/* Tipografía profesional para contadores */
-.stats-bar { 
-    font-family: 'Consolas', 'Monaco', 'JetBrains Mono', monospace; 
-    font-weight: bold; 
-    letter-spacing: 1px;
-}
-#count-pending { color: var(--red-main); font-size: 20px; }
-#count-done { color: #2ecc71; font-size: 18px; }
+.stats-bar { font-size: 0.7rem; color: #666; font-weight: bold; margin-top: 5px; letter-spacing: 1px; }
+#count-pending {
+	color: var(--red-main); 
+	font-size: 20px;
+	}
+#count-done {
+	color: #2ecc71; 
+	font-size: 20px;
+	}
+	
 
-.header-actions { display: flex; gap: 15px; align-items: center; }
-#team-input { background: #1a1a1a; border: 1px solid var(--border-color); padding: 12px; color: white; border-radius: 4px; outline: none; }
-.btn-add-inline { background: var(--red-main); color: white; border: none; padding: 12px 20px; border-radius: 4px; font-weight: bold; cursor: pointer; }
-.btn-clean { background: transparent; color: #666; border: 1px solid #333; padding: 10px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; }
+.header-actions { display: flex; align-items: center; gap: 20px; }
+.add-team-box { display: flex; gap: 10px; }
+#team-input { background: #1a1a1a; border: 1px solid var(--border-color); padding: 12px 15px; color: white; border-radius: 4px; outline: none; }
+.btn-add-inline { background: var(--red-main); color: white; border: none; padding: 0 20px; border-radius: 4px; font-weight: bold; cursor: pointer; }
 
-/* TABLA */
+.btn-clean { background: #111; color: #555; border: 1px solid #333; padding: 10px 15px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; cursor: pointer; transition: 0.3s; }
+.btn-clean:hover { color: var(--red-main); border-color: var(--red-main); }
+
 .table-frame { background: var(--card-bg); border: 1px solid var(--border-color); overflow-x: auto; margin-bottom: 40px; }
 table { width: 100%; border-collapse: collapse; }
-th { padding: 15px; text-align: left; color: var(--red-main); border-bottom: 2px solid var(--red-dim); font-size: 0.75rem; }
+th { padding: 15px; text-align: left; background: #000; color: var(--red-main); font-size: 0.75rem; border-bottom: 2px solid var(--red-dim); }
 td { padding: 12px 15px; border-bottom: 1px solid var(--border-color); }
 
-/* Nombre del equipo bloqueado */
-.edit-name { background: transparent; border: none; color: white; font-weight: bold; outline: none; width: 150px; cursor: default; }
-
+.edit-name { background: transparent; border: none; color: white; font-weight: bold; font-family: inherit; width: 150px; outline: none; }
 .progress-container { width: 80px; height: 8px; background: #1a1a1a; border-radius: 10px; border: 1px solid #222; overflow: hidden; }
-.progress-bar { height: 100%; width: 0%; transition: width 0.4s ease; border-radius: 10px; }
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background: var(--red-main);
+    border-radius: 10px;
+    transition: background 0.4s ease;
+}
 
-.cb-red { display: inline-block; width: 22px; height: 22px; background: #1a1a1a; border: 1px solid #333; border-radius: 4px; cursor: pointer; position: relative; outline: none; }
+/* 🔥 cuando llega a 100% */
+
 .cb-red input { display: none; }
-.cb-red input:checked + span::after { content: "✓"; position: absolute; color: var(--red-main); left: 5px; top: 0; font-weight: bold; }
-.cb-red:focus { border-color: var(--red-main); box-shadow: 0 0 5px var(--red-main); }
+.cb-red span { display: inline-block; width: 20px; height: 20px; background: #1a1a1a; border: 1px solid var(--border-color); border-radius: 4px; position: relative; cursor: pointer; }
+.cb-red input:checked + span::after { content: "✓"; position: absolute; color: var(--red-main); left: 4px; top: 0; }
 
-.finish-btn { background: #111; border: 1px solid #333; color: #444; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; }
-.finish-btn.ready-to-finish { border-color: #eee; color: #eee; }
-.delete-row-btn { background: transparent; border: 1px solid var(--red-main); color: var(--red-main); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; }
+.finish-btn { background: transparent; border: 1px solid #333; color: #444; padding: 5px 10px; cursor: not-allowed; font-size: 0.7rem; border-radius: 4px; opacity: 0.5; font-weight: bold; }
+.finish-btn.ready-to-finish { border-color: #ccc; color: #eee; cursor: pointer; opacity: 1; }
 
-.row-finished td { opacity: 0.2; }
-.row-finished .edit-name { text-decoration: line-through; color: #2ecc71; }
+.delete-row-btn { background: transparent; border: 1px solid var(--red-main); color: var(--red-main); padding: 5px 10px; cursor: pointer; font-size: 0.7rem; border-radius: 4px; font-weight: bold; }
+.delete-row-btn:hover { background: var(--red-main); color: white; }
 
-/* TARJETAS NOTAS */
-.summary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-top: 10px; }
-.team-card { background: #0a0a0a; border: 1px solid #222; border-radius: 4px; display: flex; flex-direction: column; }
-.card-header { background: #111; padding: 10px; color: #fff; font-weight: bold; font-size: 0.8rem; border-left: 3px solid var(--red-main); }
-.card-textarea { background: transparent; border: none; color: #aaa; padding: 10px; height: 80px; resize: none; font-size: 0.8rem; outline: none; font-family: inherit; }
-.card-footer { padding: 10px; background: #0d0d0d; border-top: 1px solid #1a1a1a; display: flex; justify-content: space-between; align-items: center; }
-.footer-q { font-size: 0.6rem; color: #666; font-weight: bold; }
+.row-finished td:nth-child(-n+8) { opacity: 0.3; filter: grayscale(1); }
+.row-finished td:nth-child(9) { opacity: 1 !important; filter: none !important; }
+.row-finished .finish-btn { opacity: 1 !important; filter: grayscale(0) !important; color: var(--red-main); border-color: var(--red-main); cursor: pointer; }
 
-/* BINARY SWITCH SI/NO */
-.binary-switch { display: flex; background: #1a1a1a; border-radius: 4px; padding: 2px; border: 1px solid #333; }
-.binary-switch button { background: transparent; border: none; color: #444; padding: 4px 12px; font-size: 0.65rem; font-weight: 900; cursor: pointer; border-radius: 2px; }
-.binary-switch button.active { color: #fff; }
-.binary-switch button:nth-child(2).active { background: var(--red-main); box-shadow: 0 0 10px rgba(255, 62, 62, 0.4); }
-.binary-switch button:nth-child(1).active { background: #333; color: #888; }
+.summary-box { background: #000; border: 1px solid var(--border-color); padding: 15px; margin-top: 10px; min-height: 50px; }
+.summary-item { margin-bottom: 10px; font-family: 'Consolas', monospace; display: flex; align-items: center; }
+.summary-name { color: var(--red-main); font-weight: bold; min-width: 100px; }
+.summary-note-input { background: transparent; border: none; border-bottom: 1px dashed #333; color: #ccc; flex-grow: 1; outline: none; padding-left: 10px; font-family: inherit; }
 
-/* NOTAS GENERALES */
-#global-notes { width: 100%; height: 100px; background: #000; color: #ccc; border: 1px solid #222; border-left: 4px solid var(--red-main); padding: 10px; margin-top: 10px; box-sizing: border-box; resize: vertical; outline: none; }
+.notes-header-flex { display: flex; justify-content: space-between; align-items: center; }
+.btn-date { background: transparent; border: 1px solid #444; color: #888; font-size: 0.6rem; padding: 4px 8px; cursor: pointer; border-radius: 3px; }
+.btn-date:hover { border-color: var(--red-main); color: var(--red-main); }
+
+#global-notes { width: 100%; height: 100px; background: #000; color: #ccc; border: 1px solid #222; border-left: 4px solid var(--red-main); padding: 15px; box-sizing: border-box; resize: vertical; margin-top: 10px; }
 .notes-header { color: var(--red-main); font-size: 0.8rem; font-weight: bold; }
-.btn-date { background: transparent; border: 1px solid #333; color: #555; padding: 5px 10px; cursor: pointer; font-size: 0.6rem; border-radius: 3px; }
 
-.team-card.hidden {
-    display: none;
-    /* O puedes usar: opacity: 0; pointer-events: none; si prefieres animarlo */
+/* CONTENEDOR GRID */
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 15px;
+}
+
+/* TARJETA */
+.team-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-left: 3px solid var(--red-main);
+    padding: 15px;
+    border-radius: 6px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    transition: 0.2s ease;
+}
+
+.team-card:hover {
+    border-color: var(--red-main);
+    box-shadow: 0 0 12px rgba(255, 62, 62, 0.2);
+}
+
+/* CABECERA */
+.card-header {
+    font-weight: bold;
+    color: var(--red-main);
+    margin-bottom: 10px;
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+}
+
+/* TEXTAREA */
+.card-textarea {
+    width: 100%;
+    height: 80px;
+    background: #000;
+    border: 1px solid #222;
+    border-left: 3px solid var(--red-main);
+    color: #ccc;
+    padding: 10px;
+    resize: vertical;
+    font-family: 'Consolas', monospace;
+    font-size: 0.8rem;
+    box-sizing: border-box;
+    transition: 0.2s;
+}
+
+.card-textarea:focus {
+    outline: none;
+    border-color: var(--red-main);
+    box-shadow: 0 0 5px rgba(255, 62, 62, 0.4);
+}
+
+/* FOOTER */
+.card-footer {
+    margin-top: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* TEXTO INVENTARIO */
+.footer-q {
+    font-size: 0.7rem;
+    color: #777;
+    letter-spacing: 1px;
+}
+
+/* SWITCH */
+.binary-switch {
+    display: flex;
+    border: 1px solid #333;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.binary-switch button {
+    background: transparent;
+    border: none;
+    color: #555;
+    font-size: 0.7rem;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.binary-switch button:hover {
+    color: var(--red-main);
+}
+
+/* ACTIVO */
+.binary-switch button.active {
+    background: var(--red-main);
+    color: white;
+}
+.card-textarea::placeholder {
+    color: #555;
+    font-style: italic;
+}
+.progress-text {
+    font-size: 0.7rem;
+    color: #888;
+    margin-top: 5px;
+    font-family: 'Consolas', monospace;
+}
+/* =========================
+   PROGRESO ANIMADO
+========================= */
+
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background: var(--red-main);
+    border-radius: 10px;
+    transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: width;
+}
+
+/* =========================
+   CHECKBOX (RECUPERA ESTILO)
+========================= */
+
+.cb-red input {
+	position: absolute;
+	opacity: 0;
+}
+
+.cb-red span {
+    width: 18px;
+    height: 18px;
+    display: inline-block;
+    border: 2px solid var(--red-main);
+    border-radius: 4px;
+    position: relative;
+    cursor: pointer;
+}
+
+.cb-red input:checked + span {
+    background: var(--red-main);
+}
+
+.cb-red input:checked + span::after {
+    content: "✓";
+    position: absolute;
+    color: white;
+    font-size: 12px;
+    left: 3px;
+    top: -1px;
+}
+
+/* =========================
+   TARJETAS NOTAS
+========================= */
+
+.team-card {
+    background: #1e1e1e;
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.card-header {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.card-textarea {
+    width: 100%;
+    min-height: 60px;
+    background: #111;
+    color: white;
+    border: none;
+    padding: 5px;
+}
+.inv-row {
+    margin-top: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+}
+
+.inv-btn {
+    padding: 5px 10px;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+    background: #444;
+    color: white;
+}
+
+.inv-btn:hover {
+    background: #666;
+}
+.filter-box {
+    display: flex;
+    gap: 5px;
+}
+
+.filter-btn {
+    padding: 6px 10px;
+    border: none;
+    background: #333;
+    color: white;
+    cursor: pointer;
+    border-radius: 5px;
+    font-size: 12px;
+}
+
+.filter-btn:hover {
+    background: #555;
+}
+
+.filter-btn.active {
+    background: var(--red-main);
+}
+.global-progress {
+    width: 100%;
+    height: 10px;
+    background: #222;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 10px;
+}
+
+.global-bar {
+    height: 100%;
+    width: 0%;
+    background: var(--red-main);
+    transition: width 0.3s ease, background 0.3s ease;
+}
+
+.global-text {
+    font-size: 12px;
+    margin-top: 4px;
+}
+.state-in-progress td {
+    border-left: 4px solid #f1c40f;
+}
+
+.state-ready td {
+    border-left: 4px solid #2ecc71;
+}
+
+.state-done td {
+    border-left: 4px solid #3498db;
+}
+
+.state-reopened td {
+    border-left: 4px solid #ff3e3e;
+}
+/* animación pulse al actualizar */
+@keyframes progressPulse {
+    0% { transform: scaleX(1); filter: brightness(1); }
+    50% { transform: scaleX(1.02); filter: brightness(1.4); }
+    100% { transform: scaleX(1); filter: brightness(1); }
+}
+}
+
+.progress-bar.animate {
+    animation: progressPulse 0.4s ease;
+}
+
+.progress-bar[style*="width: 100%"] {
+    background: #2ecc71;
+}
+/* =========================
+   COMPLETADO: BOUNCE + GLOW
+========================= */
+
+@keyframes completeBounce {
+    0% {
+        transform: scaleX(1);
+        box-shadow: 0 0 0 rgba(46, 204, 113, 0);
+    }
+    30% {
+        transform: scaleX(1.08);
+        box-shadow: 0 0 12px rgba(46, 204, 113, 0.6);
+    }
+    60% {
+        transform: scaleX(0.98);
+        box-shadow: 0 0 18px rgba(46, 204, 113, 0.8);
+    }
+    100% {
+        transform: scaleX(1);
+        box-shadow: 0 0 8px rgba(46, 204, 113, 0.4);
+    }
+}
+
+.progress-bar.complete-bounce {
+    animation: completeBounce 0.45s ease-out;
+}
+.progress-bar.complete-bounce {
+    animation: completeBounce 0.45s ease-out;
+}
+.progress-bar.full {
+    background: #2ecc71;
+}
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  animation: fadeIn 0.2s ease;
+}
+
+
+.hidden {
+  display: none;
+}
+
+.modal-content {
+  background: #0f0f0f;
+  border: 1px solid #222;
+  border-radius: 10px;
+  width: 420px;
+  max-height: 75vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 0 25px rgba(0,0,0,0.8);
+  animation: scaleIn 0.2s ease;
+}
+
+.modal-content h3 {
+  margin: 0;
+  padding: 15px;
+  font-size: 14px;
+  letter-spacing: 1px;
+  color: var(--red-main);
+  border-bottom: 1px solid #222;
+}
+
+#history-list div {
+  border-bottom: 1px solid #222;
+  padding: 10px 0;
+  font-size: 12px;
+}
+#history-list {
+  padding: 10px 15px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* ITEMS */
+.history-item {
+  padding: 10px;
+  border-bottom: 1px solid #1a1a1a;
+  font-size: 12px;
+  transition: 0.2s;
+}
+
+.history-item:hover {
+  background: rgba(255,255,255,0.03);
+}
+
+.history-name {
+  color: var(--red-main);
+  font-weight: bold;
+}
+
+.history-meta {
+  color: #777;
+  font-size: 11px;
+}
+
+/* FOOTER */
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  border-top: 1px solid #222;
+}
+
+.modal-actions button {
+  background: #111;
+  border: 1px solid #333;
+  color: #aaa;
+  padding: 6px 12px;
+  font-size: 11px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: 0.2s;
+}
+
+.modal-actions button:hover {
+  border-color: var(--red-main);
+  color: var(--red-main);
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+  from { opacity: 0 }
+  to { opacity: 1 }
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.95); opacity: 0 }
+  to { transform: scale(1); opacity: 1 }
+}
+.inv-yes {
+  color: #2ecc71;
+  font-weight: bold;
+}
+
+.inv-no {
+  color: #ff3e3e;
+  font-weight: bold;
 }
