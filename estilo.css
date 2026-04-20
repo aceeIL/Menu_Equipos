@@ -47,7 +47,6 @@ td { padding: 12px 15px; border-bottom: 1px solid var(--border-color); }
     transition: background 0.4s ease;
 }
 
-/* 🔥 cuando llega a 100% */
 
 .cb-red input { display: none; }
 .cb-red span { display: inline-block; width: 20px; height: 20px; background: #1a1a1a; border: 1px solid var(--border-color); border-radius: 4px; position: relative; cursor: pointer; }
