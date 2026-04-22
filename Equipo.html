@@ -1,17 +1,20 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <link rel="icon" type="image/png" href="faviconRDP.png">
+	<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <link rel="icon" type="image/png" href="../Media/faviconRDP.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Equipos Nuevos Checklist</title>
-    <link rel="stylesheet" href="estilo.css">
+    <link rel="stylesheet" href="../css/estilo.css">
 </head>
 
 <body>
+
 <div class="main-layout">
 
 <header class="dashboard-header">
+	<button class="export-btn excel" onclick="exportarExcel()">CSV</button>
     <div class="brand">
 			<div class="global-progress">
 			<div class="global-bar"></div>
@@ -20,10 +23,11 @@
         <span class="glitch-text">NUEVOS EQUIPOS</span>
         <div class="stats-bar">
 		<div class="filter-box">
-    <button onclick="filtrar('all')" class="filter-btn active">TODOS</button>
-    <button onclick="filtrar('pending')" class="filter-btn">PENDIENTES</button>
-    <button onclick="filtrar('done')" class="filter-btn">COMPLETOS</button>
+    <button onclick="filtrar('all')" class="filter-btn active" data-filter="all">TODOS</button>
+	<button onclick="filtrar('pending')" class="filter-btn" data-filter="pending">PENDIENTES</button>
+	<button onclick="filtrar('done')" class="filter-btn" data-filter="done">COMPLETOS</button>
 	<button id="history-btn" class="btn-clean">HISTORIAL</button>
+	<input type="text" id="search-input" placeholder="Buscar equipo...">
 
 </div>
             PENDIENTES: <span id="count-pending">0</span> | LISTOS: <span id="count-done">0</span>
@@ -77,8 +81,21 @@
     <h3>Historial de Equipos</h3>
     <div id="history-list"></div>
     <div class="modal-actions">
-      <button onclick="borrarHistorial()">Vaciar</button>
-      <button onclick="cerrarHistorial()">Cerrar</button>
+  <button onclick="exportarHistorialTXT()">Exportar TXT</button>
+  <button onclick="borrarHistorial()">Vaciar</button>
+  <button onclick="cerrarHistorial()">Cerrar</button>
+</div>
+  </div>
+</div>
+<div id="edit-modal" class="modal hidden">
+  <div class="modal-content">
+    <h3>Editar Equipo</h3>
+
+    <input type="text" id="edit-input" placeholder="Nombre del equipo">
+
+    <div class="modal-actions">
+      <button onclick="guardarEdicion()">Guardar</button>
+      <button onclick="cerrarEditar()">Cancelar</button>
     </div>
   </div>
 </div>
@@ -91,6 +108,8 @@ const summaryList = document.getElementById('team-summary-list');
 const globalNotes = document.getElementById('global-notes');
 
 let filtroActual = "all";
+
+let filaEditando = null;
 
 /* =========================
    CREAR EQUIPO
@@ -109,11 +128,15 @@ function crearEquipo() {
     }
 
     const row = document.createElement('tr');
-    row.dataset.id = "row-" + Date.now();
+    row.dataset.id = crypto.randomUUID();
+	row.dataset.locked = "false";
 
     row.innerHTML = `
-        <td><input type="text" class="edit-name" value="${nombre}" readonly></td>
-
+        <td>
+    <button class="edit-btn" onclick="abrirEditar(this)">✏️</button>
+    <input type="text" class="edit-name" value="${nombre}" readonly>
+		</td>
+		
         <td>
             <div class="progress-container">
                 <div class="progress-bar"></div>
@@ -148,6 +171,8 @@ function crearEquipo() {
     actualizarBarraGlobal();
     ordenarPorProgreso();
     filtrar(filtroActual);
+	guardarDatos();
+	forzarGuardadoGlobal();
 }
 
 /* =========================
@@ -158,14 +183,13 @@ function actualizarCheck(input) {
     const row = input.closest('tr');
 
     actualizarProgresoVisual(row);
-    guardarDatos();
-    actualizarResumenEquipos();
-    actualizarContadores();
-    actualizarBarraGlobal();
-
     ordenarPorProgreso();
-    filtrar(filtroActual);
+    refrescarUI();
+
+    guardarDatos();
+	forzarGuardadoGlobal();
 }
+
 
 /* =========================
    PROGRESO
@@ -183,26 +207,30 @@ function actualizarProgresoVisual(row) {
     const percent = Math.round((done / checks.length) * 100);
 
     const current = parseFloat(bar.style.width) || 0;
-
     animarBarra(bar, current, percent, 550);
 
     text.textContent = percent + "%";
 
-    // animación visual extra al cambiar
+    // animación
     bar.classList.remove("animate");
     void bar.offsetWidth;
     bar.classList.add("animate");
 
+    // color verde al completar
     if (percent === 100) {
-  row.dataset.state = "ready";
-  btn.disabled = false;
-  btn.classList.add("ready-to-finish");
-} else {
-  row.dataset.state = "in-progress";
-  btn.disabled = true;
-  btn.classList.remove("ready-to-finish");
-}
+        bar.classList.add("full");
 
+        btn.classList.add("ready-to-finish");
+        btn.style.cursor = "pointer";
+
+    } else {
+        bar.classList.remove("full");
+
+        btn.classList.remove("ready-to-finish");
+        btn.style.cursor = "not-allowed";
+    }
+
+    actualizarEstado(row, percent);
 }
 
 /* =========================
@@ -210,8 +238,9 @@ function actualizarProgresoVisual(row) {
 ========================= */
 
 function finalizarFila(btn) {
-    const row = btn.closest('tr');
+    if (!btn.classList.contains("ready-to-finish")) return;
 
+    const row = btn.closest('tr');
     const isDone = row.classList.contains('row-finished');
 
     row.classList.toggle('row-finished');
@@ -223,16 +252,15 @@ function finalizarFila(btn) {
 
     btn.textContent = finished ? "REABRIR" : "OK";
 
-    row.dataset.state = finished ? "done" : "in-progress";
+    row.dataset.state = finished ? "done" : "reopened";
 
-    guardarDatos();
-    actualizarContadores();
-    actualizarBarraGlobal();
-	if (!isDone) {
-  guardarEnHistorial(row);
-				}
-btn.classList.remove("ready-to-finish");
+    refrescarUI();
 
+    if (!isDone && finished) {
+        guardarEnHistorial(row);
+		guardarDatos();
+		forzarGuardadoGlobal();
+    }
 }
 
 /* =========================
@@ -243,10 +271,9 @@ function eliminarFila(btn) {
   const row = btn.closest('tr');
   guardarEnHistorial(row);
   row.remove();
+  refrescarUI();
   guardarDatos();
-  actualizarResumenEquipos();
-  actualizarContadores();
-  actualizarBarraGlobal();
+  forzarGuardadoGlobal();
 }
 
 /* =========================
@@ -254,17 +281,12 @@ function eliminarFila(btn) {
 ========================= */
 
 function limpiarCompletados() {
-    document.querySelectorAll('.row-finished').forEach(r => r.remove());
-    guardarDatos();
-    actualizarResumenEquipos();
-    actualizarContadores();
-    actualizarBarraGlobal();
-    filtrar(filtroActual);
-	document.querySelectorAll('.row-finished').forEach(r => {
-	guardarEnHistorial(r);
-	r.remove();
-});
+    document.querySelectorAll('.row-finished').forEach(r => {
+        guardarEnHistorial(r);
+        r.remove();
+    });
 
+    refrescarUI();
 }
 
 /* =========================
@@ -329,23 +351,32 @@ function guardarDatos() {
     const data = [];
 
     document.querySelectorAll('#table-body tr').forEach(row => {
+
         const checks = Array.from(
             row.querySelectorAll('td input[type="checkbox"]:not(.hidden-inv-check)')
         ).map(c => c.checked);
 
+        const nameEl = row.querySelector('.edit-name');
+        const notesEl = row.querySelector('.hidden-notes');
+        const invEl = row.querySelector('.hidden-inv-check');
+
+        if (!nameEl) return;
+
         data.push({
             id: row.dataset.id,
-            name: row.querySelector('.edit-name').value,
+            name: nameEl.value || "",
             checks: checks,
             finished: row.classList.contains('row-finished'),
             state: row.dataset.state || "in-progress",
-            notes: row.querySelector('.hidden-notes').value,
-            inventariado: row.querySelector('.hidden-inv-check').checked
+            notes: notesEl ? notesEl.value : "",
+            inventariado: invEl ? invEl.checked : false
         });
     });
 
+    console.log("GUARDANDO:", data);
+
     localStorage.setItem('techTrackTable', JSON.stringify(data));
-    localStorage.setItem('techTrackNotes', globalNotes.value);
+	localStorage.setItem('techTrackNotes', globalNotes.value);
 }
 
 /* =========================
@@ -389,14 +420,15 @@ function insertarFecha() {
 ========================= */
 
 function actualizarContadores() {
-    const rows = document.querySelectorAll('#table-body tr');
+    const rows = Array.from(tableBody.querySelectorAll('tr'));
 
     let pending = 0;
     let done = 0;
 
     rows.forEach(r => {
         const state = r.dataset.state;
-
+		console.log("Filas encontradas:", rows);
+		
         if (state === "done") done++;
         else pending++;
     });
@@ -406,7 +438,7 @@ function actualizarContadores() {
 }
 
 /* =========================
-   ORDEN
+   Obtener %
 ========================= */
 
 function obtenerPorcentaje(row) {
@@ -415,14 +447,29 @@ function obtenerPorcentaje(row) {
     checks.forEach(c => { if (c.checked) done++; });
     return (done / checks.length) * 100;
 }
+/* =========================
+   Obtener Score para añadir peso
+========================= */
+function obtenerScore(row) {
+    const percent = obtenerPorcentaje(row);
+    const isFinished = row.classList.contains('row-finished');
 
+    return (percent * 2) + (isFinished ? 0 : 100);
+}
+/* =========================
+   ORDEN por progreso (%)
+========================= */
 function ordenarPorProgreso() {
     const rows = Array.from(tableBody.querySelectorAll('tr'));
 
-    rows.sort((a, b) => obtenerPorcentaje(b) - obtenerPorcentaje(a));
+    rows.sort((a, b) => {
+        return obtenerScore(b) - obtenerScore(a);
+    });
 
     rows.forEach(r => tableBody.appendChild(r));
 }
+
+
 
 /* =========================
    FILTRO
@@ -431,6 +478,16 @@ function ordenarPorProgreso() {
 function filtrar(tipo) {
     filtroActual = tipo;
 
+    //  actualizar botones 
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+
+        if (btn.dataset.filter === tipo) {
+            btn.classList.add('active');
+        }
+    });
+
+    //  filtrar
     document.querySelectorAll('#table-body tr').forEach(row => {
         const isDone = row.classList.contains('row-finished');
 
@@ -477,6 +534,7 @@ function actualizarBarraGlobal() {
 ========================= */
 
 function cargarDatos() {
+
     const data = JSON.parse(localStorage.getItem('techTrackTable') || "[]");
     const notes = localStorage.getItem('techTrackNotes');
 
@@ -485,11 +543,16 @@ function cargarDatos() {
     tableBody.innerHTML = "";
 
     data.forEach(item => {
+
         const row = document.createElement('tr');
         row.dataset.id = item.id;
+        row.draggable = true;
 
         row.innerHTML = `
-            <td><input type="text" class="edit-name" value="${item.name}" readonly></td>
+            <td>
+                <button class="edit-btn" onclick="abrirEditar(this)">✏️</button>
+                <input type="text" class="edit-name" value="${item.name}" readonly>
+            </td>
 
             <td>
                 <div class="progress-container">
@@ -515,15 +578,15 @@ function cargarDatos() {
         `;
 
         tableBody.appendChild(row);
-		
+
         if (item.finished) {
-    row.classList.add("row-finished");
+            row.classList.add("row-finished");
 
-    row.querySelectorAll('td input[type="checkbox"]:not(.hidden-inv-check)')
-        .forEach(c => c.disabled = true);
+            row.querySelectorAll('input[type="checkbox"]:not(.hidden-inv-check)')
+                .forEach(c => c.disabled = true);
 
-    row.querySelector('.finish-btn').textContent = "REABRIR";
-}
+            row.querySelector('.finish-btn').textContent = "REABRIR";
+        }
 
         actualizarProgresoVisual(row);
     });
@@ -531,6 +594,15 @@ function cargarDatos() {
     actualizarResumenEquipos();
     actualizarContadores();
     actualizarBarraGlobal();
+const savedOrder = JSON.parse(localStorage.getItem("techTrackOrder") || "[]");
+
+if (savedOrder.length) {
+    savedOrder.forEach(id => {
+        const row = [...tableBody.querySelectorAll("tr")]
+            .find(r => r.dataset.id === id);
+        if (row) tableBody.appendChild(row);
+    });
+}
 }
 
 /* =========================
@@ -588,15 +660,45 @@ function animarBarra(bar, from, to, duration = 500) {
 function guardarEnHistorial(row) {
   const historial = JSON.parse(localStorage.getItem('techTrackHistory') || "[]");
 
-  const inventariado = row.querySelector('.hidden-inv-check').checked;
+  const id = row.dataset.id;
 
-  historial.push({
+  const procesos = [
+    "Actualizaciones",
+    "BIOS Update",
+    "Cosas C:\\",
+    "Cuentas",
+    "Aplicaciones"
+  ];
+
+  const checks = Array.from(
+    row.querySelectorAll('td input[type="checkbox"]:not(.hidden-inv-check)')
+  );
+
+  const faltantes = [];
+
+  checks.forEach((c, i) => {
+    if (!c.checked) {
+      faltantes.push(procesos[i] || `Proceso ${i + 1}`);
+    }
+  });
+
+  const nuevo = {
+    id: id,
     name: row.querySelector('.edit-name').value,
     fecha: new Date().toLocaleString(),
     progreso: obtenerPorcentaje(row),
     estado: row.dataset.state,
-    inventariado: inventariado
-  });
+    inventariado: row.querySelector('.hidden-inv-check').checked,
+    faltantes: faltantes
+  };
+
+  const index = historial.findIndex(h => h.id === id);
+
+  if (index !== -1) {
+    historial[index] = nuevo;
+  } else {
+    historial.push(nuevo);
+  }
 
   localStorage.setItem('techTrackHistory', JSON.stringify(historial));
 }
@@ -637,8 +739,8 @@ Cerrar ventana historial
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
     cerrarHistorial();
+    cerrarEditar(); 
   }
-
 });
 
 document.getElementById('history-modal').addEventListener('click', (e) => {
@@ -658,16 +760,268 @@ function cerrarHistorial() {
   Borrar Historial
 ========================= */
 function borrarHistorial() {
-  if (confirm("¿Borrar todo el historial?")) {
-    localStorage.removeItem('techTrackHistory');
-    abrirHistorial();
-  }
+  localStorage.removeItem('techTrackHistory');
+  abrirHistorial();
 }
 /* =========================
-  Evento Botón
+  Evento Botón Historial
 ========================= */
 document.getElementById('history-btn').onclick = abrirHistorial;
+/* ======================================
+  Funciones repetidas dentro de funciones
+========================================= */
+function refrescarUI() {
+    guardarDatos();
+    actualizarResumenEquipos();
+    actualizarContadores();
+    actualizarBarraGlobal();
+    filtrar(filtroActual);
+}
+/* ======================================
+  Funcionalidad de filtros
+========================================= */
+const searchInput = document.getElementById('search-input');
 
+searchInput.addEventListener("input", () => {
+    const value = searchInput.value.toLowerCase();
+
+    document.querySelectorAll('#table-body tr').forEach(row => {
+        const name = row.querySelector('.edit-name').value.toLowerCase();
+
+        row.style.display = name.includes(value) ? "" : "none";
+    });
+});
+/* ======================================
+  Abrir Editar
+========================================= */
+function abrirEditar(btn) {
+    const row = btn.closest('tr');
+    filaEditando = row;
+
+    const nombre = row.querySelector('.edit-name').value;
+
+    const modal = document.getElementById('edit-modal');
+    const input = document.getElementById('edit-input');
+
+    input.value = nombre;
+
+    modal.classList.remove('hidden');
+    input.focus();
+}
+
+function cerrarEditar() {
+    document.getElementById('edit-modal').classList.add('hidden');
+    filaEditando = null;
+}
+
+function guardarEdicion() {
+    if (!filaEditando) return;
+
+    const nuevoNombre = document.getElementById('edit-input').value.trim().toUpperCase();
+
+    if (!nuevoNombre) return;
+
+    filaEditando.querySelector('.edit-name').value = nuevoNombre;
+
+    cerrarEditar();
+    refrescarUI();
+}
+/* ======================================
+  Evento de Abrir Editar
+========================================= */
+document.getElementById('edit-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'edit-modal') {
+        cerrarEditar();
+    }
+});
+/* ======================================
+  Guardar Edicion "enter" event
+========================================= */
+document.getElementById('edit-input').addEventListener('keydown', (e) => {
+    if (e.key === "Enter") {
+        guardarEdicion();
+    }
+});
+/* =========================
+   Arrastrar y ordenar
+========================= */
+let draggedRow = null;
+
+tableBody.addEventListener("dragstart", (e) => {
+    draggedRow = e.target.closest("tr");
+    e.target.classList.add("dragging");
+});
+
+tableBody.addEventListener("dragend", (e) => {
+    e.target.classList.remove("dragging");
+    guardarOrden();
+    guardarDatos(); // 🔥 FALTABA ESTO
+});
+
+tableBody.addEventListener("dragover", (e) => {
+    e.preventDefault();
+
+    const afterElement = getDragAfterElement(tableBody, e.clientY);
+    const current = draggedRow;
+
+    if (!afterElement) {
+        tableBody.appendChild(current);
+        return;
+    }
+
+    
+    const grupoActual = obtenerGrupo(current);
+    const grupoDestino = obtenerGrupo(afterElement);
+
+    if (grupoActual !== grupoDestino) {
+    current.classList.add("drag-invalid");
+    return;
+} else {
+    current.classList.remove("drag-invalid");
+}
+
+    tableBody.insertBefore(current, afterElement);
+});
+
+function getDragAfterElement(container, y) {
+    const elements = [...container.querySelectorAll("tr:not(.dragging)")];
+
+    return elements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+
+        if (offset < 0 && offset > closest.offset) {
+            return { offset: offset, element: child };
+        } else {
+            return closest;
+        }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+/* =========================
+   Guardar Orden
+========================= */
+function guardarOrden() {
+    const order = [];
+
+    document.querySelectorAll('#table-body tr').forEach(row => {
+        order.push(row.dataset.id);
+    });
+
+    localStorage.setItem("techTrackOrder", JSON.stringify(order));
+}
+/* =========================
+   Obtener grupo
+========================= */
+function obtenerGrupo(row) {
+    const percent = obtenerPorcentaje(row);
+
+    if (row.classList.contains('row-finished')) return 3;
+    if (percent >= 75) return 2;
+    if (percent >= 1) return 1;
+    return 0;
+}
+/* =========================
+   Exportar CSV Equipos
+========================= */
+function exportarExcel() {
+    const tabla = document.getElementById("equipos-table");
+    const filas = Array.from(tabla.querySelectorAll("tbody tr"));
+    
+    const datosExcel = filas.map(row => {
+        const checks = row.querySelectorAll('td input[type="checkbox"]:not(.hidden-inv-check)');
+        
+        // Determinar el texto del estado
+        let estadoTexto = "PENDIENTE";
+        if (row.classList.contains('row-finished')) {
+            estadoTexto = "COMPLETO";
+        } else if (row.dataset.state === "reopened") {
+            estadoTexto = "REABIERTO";
+        }
+
+        // Obtener la nota del equipo (del input oculto que ya tienes en tu HTML)
+        const notaEquipo = row.querySelector(".hidden-notes") ? row.querySelector(".hidden-notes").value : "";
+
+        return {
+            "ID EQUIPO": row.querySelector(".edit-name").value,
+            "PROGRESO": row.querySelector(".progress-text").textContent,
+            "ACTUALIZACIONES": checks[0].checked ? "SÍ" : "NO",
+            "BIOS UPDATE": checks[1].checked ? "SÍ" : "NO",
+            "COSAS C:\\": checks[2].checked ? "SÍ" : "NO",
+            "CUENTAS": checks[3].checked ? "SÍ" : "NO",
+            "APLICACIONES": checks[4].checked ? "SÍ" : "NO",
+            "ESTADO": estadoTexto,
+            "NOTAS DEL EQUIPO": notaEquipo
+        };
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(datosExcel);
+
+    // Ajuste de anchos de columna (agregamos ancho para la columna de notas)
+    const wscols = [
+        {wch: 25}, {wch: 12}, {wch: 18}, {wch: 15}, 
+        {wch: 12}, {wch: 12}, {wch: 15}, {wch: 15}, {wch: 40}
+    ];
+    ws['!cols'] = wscols;
+
+    XLSX.utils.book_append_sheet(wb, ws, "Equipos");
+    
+    const fecha = new Date().toLocaleDateString().replace(/\//g, '-');
+    XLSX.writeFile(wb, `Reporte_Equipos_${fecha}.xlsx`);
+}
+/* =========================
+   Exportar TXT Historial
+========================= */
+function exportarHistorialTXT() {
+
+    const data = JSON.parse(localStorage.getItem('techTrackHistory') || "[]");
+
+    if (!data.length) {
+        alert("No hay equipos en el historial");
+        return;
+    }
+
+    let texto = "=== HISTORIAL DE EQUIPOS ===\n\n";
+
+    data.forEach(item => {
+
+        texto += `==============================\n`;
+        texto += `EQUIPO: ${item.name}\n`;
+        texto += `FECHA: ${item.fecha}\n`;
+        texto += `PROGRESO: ${Math.round(item.progreso)}%\n`;
+        texto += `ESTADO: ${item.estado}\n`;
+        texto += `INVENTARIADO: ${item.inventariado ? "SI" : "NO"}\n`;
+
+        if (item.faltantes && item.faltantes.length > 0) {
+            texto += `\n❌ FALTANTES:\n`;
+            item.faltantes.forEach(f => {
+                texto += ` - ${f}\n`;
+            });
+        } else {
+            texto += `\n✔ TODOS LOS PROCESOS COMPLETADOS\n`;
+        }
+
+        texto += `==============================\n\n`;
+    });
+
+    const blob = new Blob([texto], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "Historial_Equipos.txt";
+    a.click();
+
+    URL.revokeObjectURL(url);
+}
+/* =============================================
+  FIX para exportar TXT forzando Guardado Global
+================================================ */
+function forzarGuardadoGlobal() {
+    setTimeout(() => {
+        guardarDatos();
+    }, 300);
+}
 </script>
 
 </body>
