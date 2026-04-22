@@ -310,27 +310,23 @@ td { padding: 12px 15px; border-bottom: 1px solid var(--border-color); }
     font-size: 12px;
     margin-top: 4px;
 }
-.state-in-progress td {
-    border-left: 4px solid #f1c40f;
-}
+.state-in-progress td,
 
-.state-ready td {
-    border-left: 4px solid #2ecc71;
-}
 
-.state-done td {
-    border-left: 4px solid #3498db;
-}
+.state-ready td,
+
+.state-done td,
+
 
 .state-reopened td {
-    border-left: 4px solid #ff3e3e;
+    border-left: none;
 }
 /* animación pulse al actualizar */
 @keyframes progressPulse {
     0% { transform: scaleX(1); filter: brightness(1); }
     50% { transform: scaleX(1.02); filter: brightness(1.4); }
     100% { transform: scaleX(1); filter: brightness(1); }
-}
+
 }
 
 .progress-bar.animate {
@@ -489,4 +485,79 @@ td { padding: 12px 15px; border-bottom: 1px solid var(--border-color); }
 .inv-no {
   color: #ff3e3e;
   font-weight: bold;
+}
+.filter-btn {
+    transition: all 0.2s ease;
+}
+#search-input {
+    background: #111;
+    border: 1px solid #333;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-left: 10px;
+}
+#edit-input {
+  width: 100%;
+  padding: 10px;
+  margin: 15px 0;
+  background: #000;
+  border: 1px solid #333;
+  color: white;
+}
+.edit-btn {
+    background: transparent;
+    border: 1px solid #333;
+    color: #888;
+    cursor: pointer;
+    margin-right: 5px;
+    border-radius: 4px;
+    padding: 2px 6px;
+}
+
+.edit-btn:hover {
+    border-color: var(--red-main);
+    color: var(--red-main);
+}
+tr.dragging {
+    opacity: 0.5;
+    background: #111;
+}
+.drag-invalid {
+    outline: 2px solid red;
+    opacity: 0.4;
+}
+.lock-btn {
+    background: transparent;
+    border: 1px solid #333;
+    color: #888;
+    cursor: pointer;
+    padding: 3px 6px;
+}
+
+.locked-row {
+    opacity: 0.6;
+}
+.export-btn.csv {
+    right: 50px;
+}
+.export-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #111;
+    border: 1px solid #333;
+    color: #888;
+    font-size: 10px;
+    padding: 4px 8px;
+    cursor: pointer;
+}
+
+.export-btn:hover {
+    border-color: var(--red-main);
+    color: var(--red-main);
+}
+.modal-actions button:first-child {
+    border-color: #2ecc71;
+    color: #2ecc71;
 }
